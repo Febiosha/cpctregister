@@ -1,6 +1,13 @@
+// Import service layer
+import { accountService, historyService } from '../services/AccountService.js'
+import { SyncManager } from '../config/api.js'
+
 // Global variables
 let isChecking = false;
 let isRegistering = false;
+
+
+let syncManager = null;
 
 // DOM elements
 const fileUploadArea = document.getElementById('fileUploadArea');
@@ -43,21 +50,8 @@ savePasswordBtn.addEventListener('click', async () => {
         savePasswordBtn.disabled = true;
         savePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
         
-        const response = await fetch('/api/update-password', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ password })
-        });
-        
-        const result = await response.json();
-        
-        if (response.ok) {
-            showPasswordStatus('Password saved successfully!', 'success');
-        } else {
-            showPasswordStatus(result.error || 'Failed to save password', 'error');
-        }
+        await accountService.updatePassword(password);
+        showPasswordStatus('Password saved successfully!', 'success');
     } catch (error) {
         showPasswordStatus('Error saving password: ' + error.message, 'error');
     } finally {
@@ -196,74 +190,46 @@ async function startChecking(accountsData) {
     checkProgress.classList.remove('d-none');
     clearLogs('check');
     
+    const accounts = accountsData.split('\n').filter(line => line.trim());
+    let validCount = 0;
+    let invalidCount = 0;
+    
     try {
-        const formData = new FormData();
-        formData.append('accountsText', accountsData);
-        
-        const response = await fetch('/api/check-accounts', {
-            method: 'POST',
-            body: formData
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        
-        let validCount = 0;
-        let invalidCount = 0;
-        
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim());
-            
-            for (const line of lines) {
-                try {
-                    const data = JSON.parse(line);
-                    
-                    if (data.completed) {
-                        // Final results
-                        addLog('check', `✅ Checking completed! Valid: ${data.validCount}, Invalid: ${data.invalidCount}`, 'success');
-                        addLog('check', `📁 Results saved with timestamp: ${data.timestamp}`, 'info');
-                        
-                        if (data.validAccounts.length > 0) {
-                            addLog('check', '📋 Valid accounts:', 'success');
-                            data.validAccounts.forEach(account => {
-                                addLog('check', `  ✓ ${account}`, 'success');
-                            });
-                        }
-                        
-                        break;
+        await accountService.checkAccounts(
+            accounts,
+            true, // VPN check is required
+            {
+                onProgress: (data) => {
+                    updateCheckProgress(data);
+                },
+                onResult: (result) => {
+                    if (result.status === 'valid') {
+                        validCount++;
+                        addLog('check', `✅ ${result.email} - Valid`, 'success');
                     } else {
-                        // Progress update
-                        updateCheckProgress(data);
-                        
-                        if (data.status === 'valid') {
-                            validCount++;
-                            addLog('check', `✅ ${data.email} - Valid`, 'success');
-                        } else if (data.status === 'invalid') {
-                            invalidCount++;
-                            addLog('check', `❌ ${data.email} - Invalid: ${data.error || 'Unknown error'}`, 'error');
-                        } else if (data.status === 'checking') {
-                            addLog('check', `🔍 Checking ${data.email}...`, 'info');
-                        }
-                        
-                        document.getElementById('validCount').textContent = validCount;
-                        document.getElementById('invalidCount').textContent = invalidCount;
+                        invalidCount++;
+                        addLog('check', `❌ ${result.email} - Invalid: ${result.message || 'Unknown error'}`, 'error');
                     }
-                } catch (e) {
-                    console.error('Error parsing JSON:', e, line);
+                    
+                    document.getElementById('validCount').textContent = validCount;
+                    document.getElementById('invalidCount').textContent = invalidCount;
+                },
+                onLog: (message) => {
+                    addLog('check', message, 'info');
+                },
+                onComplete: (data) => {
+                    addLog('check', `✅ Checking completed! Valid: ${data.validCount}, Invalid: ${data.totalCount - data.validCount}`, 'success');
+                    addLog('check', `📁 Results saved with timestamp: ${new Date().toISOString()}`, 'info');
                 }
             }
-        }
+        );
         
     } catch (error) {
-        addLog('check', `❌ Error: ${error.message}`, 'error');
+        if (error.name === 'AbortError') {
+            addLog('check', '⏹️ Checking stopped by user', 'warning');
+        } else {
+            addLog('check', `❌ Error: ${error.message}`, 'error');
+        }
     } finally {
         isChecking = false;
         startCheckBtn.disabled = false;
@@ -299,7 +265,10 @@ function updateCheckProgress(data) {
 
 // Account registration functionality
 startRegisterBtn.addEventListener('click', async () => {
-    if (isRegistering) return;
+    if (isRegistering) {
+        stopRegistration();
+        return;
+    }
     
     const count = parseInt(accountCount.value);
     if (!count || count < 1 || count > 50) {
@@ -310,10 +279,15 @@ startRegisterBtn.addEventListener('click', async () => {
     startRegistration(count);
 });
 
+function stopRegistration() {
+    accountService.stopRegistration();
+    addLog('register', '🛑 Stopping registration...', 'warning');
+}
+
 async function startRegistration(count) {
     isRegistering = true;
-    startRegisterBtn.disabled = true;
-    startRegisterBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating...';
+    startRegisterBtn.disabled = false;
+    startRegisterBtn.innerHTML = '<i class="fas fa-stop me-2"></i>Stop Registration';
     
     registerProgress.classList.remove('d-none');
     clearLogs('register');
@@ -325,89 +299,113 @@ async function startRegistration(count) {
     document.getElementById('targetCount').textContent = count;
     document.getElementById('createdCount').textContent = '0';
     
+    let createdCount = 0;
+    
     try {
-        const response = await fetch('/api/register-accounts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ count })
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        
-        let createdCount = 0;
-        
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            
-            const chunk = decoder.decode(value);
-            const lines = chunk.split('\n').filter(line => line.trim());
-            
-            for (const line of lines) {
-                try {
-                    const data = JSON.parse(line);
-                    
-                    if (data.completed) {
-                        addLog('register', `🎉 Registration completed! Created ${data.totalCreated} accounts`, 'success');
-                        if (data.accounts.length > 0) {
-                            addLog('register', '📋 Created accounts:', 'success');
-                            data.accounts.forEach(account => {
-                                addLog('register', `  ✓ ${account}`, 'success');
-                            });
-                            // Display results in the new section
-                            displayCreatedAccounts(data.accounts);
+        await accountService.registerAccounts(
+            count,
+            // Progress callback
+            (data) => {
+                updateRegisterProgress(data);
+                
+                switch (data.status) {
+                    case 'creating':
+                        addLog('register', `🔄 Creating account ${data.current}/${data.total}...`, 'info');
+                        break;
+                    case 'email_created':
+                        addLog('register', `📧 Generated email: ${data.email}`, 'info');
+                        break;
+                    case 'waiting_verification':
+                        addLog('register', `⏳ Waiting for verification code...`, 'info');
+                        break;
+                    case 'code_received':
+                        addLog('register', `✅ Verification code received: ${data.code}`, 'success');
+                        break;
+                    case 'success':
+                        createdCount++;
+                        addLog('register', `🎉 Account created successfully!`, 'success');
+                        document.getElementById('createdCount').textContent = createdCount;
+                        
+                        // Save account data immediately to prevent data loss
+                        if (data.accountData) {
+                            const immediateSession = {
+                                type: 'register',
+                                accounts: [data.accountData],
+                                totalRequested: 1,
+                                totalCreated: 1,
+                                partialResult: true,
+                                timestamp: new Date().toISOString()
+                            };
+                            
+                            historyService.saveSession(immediateSession);
+                            console.log('Account saved immediately:', data.accountData);
+                            
+                            // Update history display
+                            setTimeout(() => {
+                                updateHistoryDisplay();
+                            }, 100);
                         }
                         break;
-                    } else {
-                        updateRegisterProgress(data);
-                        
-                        switch (data.status) {
-                            case 'creating':
-                                addLog('register', `🔄 Creating account ${data.current}/${data.total}...`, 'info');
-                                break;
-                            case 'email_created':
-                                addLog('register', `📧 Generated email: ${data.email}`, 'info');
-                                break;
-                            case 'waiting_verification':
-                                addLog('register', `⏳ Waiting for verification code...`, 'info');
-                                break;
-                            case 'code_received':
-                                addLog('register', `✅ Verification code received: ${data.code}`, 'success');
-                                break;
-                            case 'success':
-                                createdCount++;
-                                addLog('register', `🎉 Account created successfully!`, 'success');
-                                document.getElementById('createdCount').textContent = createdCount;
-                                break;
-                            case 'verification_failed':
-                                addLog('register', `❌ Verification failed: ${data.error}`, 'error');
-                                break;
-                            case 'code_timeout':
-                                addLog('register', `⏰ Verification code timeout`, 'error');
-                                break;
-                            case 'request_failed':
-                                addLog('register', `❌ Request failed: ${data.error}`, 'error');
-                                break;
-                            case 'error':
-                                addLog('register', `❌ Error: ${data.error}`, 'error');
-                                break;
-                        }
-                    }
-                } catch (e) {
-                    console.error('Error parsing JSON:', e, line);
+                    case 'verification_failed':
+                        addLog('register', `❌ Verification failed: ${data.error}`, 'error');
+                        break;
+                    case 'code_timeout':
+                        addLog('register', `⏰ Verification code timeout`, 'error');
+                        break;
+                    case 'request_failed':
+                        addLog('register', `❌ Request failed: ${data.error}`, 'error');
+                        break;
+                    case 'error':
+                        addLog('register', `❌ Error: ${data.error}`, 'error');
+                        break;
+                }
+            },
+            // Results callback
+            (accounts) => {
+                addLog('register', '📋 Created accounts:', 'success');
+                accounts.forEach(account => {
+                    addLog('register', `  ✓ ${account}`, 'success');
+                });
+                displayCreatedAccounts(accounts);
+            },
+            // Log callback
+            (message, type) => {
+                addLog('register', message, type);
+            },
+            // Completion callback
+            (data) => {
+                addLog('register', `🎉 Registration completed! Created ${data.totalCreated} accounts`, 'success');
+                
+                if (data.accounts.length > 0) {
+                    // Save to history with detailed logging
+                    console.log('Saving to history:', {
+                        type: 'register',
+                        accounts: data.accounts,
+                        totalRequested: count,
+                        totalCreated: data.accounts.length
+                    });
+                    
+                    historyService.saveSession({
+                        type: 'register',
+                        accounts: data.accounts,
+                        totalRequested: count,
+                        totalCreated: data.accounts.length
+                    });
+                    
+                    // Update history display immediately
+                    setTimeout(() => {
+                        updateHistoryDisplay();
+                    }, 1000);
                 }
             }
-        }
+        );
         
     } catch (error) {
-        addLog('register', `❌ Error: ${error.message}`, 'error');
+        if (error.name === 'AbortError') {
+            addLog('register', '🛑 Registration stopped by user', 'warning');
+        } else {
+            addLog('register', `❌ Error: ${error.message}`, 'error');
+        }
     } finally {
         isRegistering = false;
         startRegisterBtn.disabled = false;
@@ -524,19 +522,283 @@ function displayCreatedAccounts(accounts) {
     }, 500);
 }
 
+
+
+// Save session to history
+async function saveSessionToHistory(sessionData) {
+    try {
+        console.log('saveSessionToHistory called with:', sessionData);
+        await historyService.saveSession(sessionData);
+        console.log('Session saved successfully');
+        
+        // Add delay before updating display to ensure data is persisted
+        setTimeout(() => {
+            console.log('Updating history display after save...');
+            updateHistoryDisplay();
+        }, 100);
+    } catch (error) {
+        console.error('Error saving session to history:', error);
+    }
+}
+
+// Get account history
+async function getAccountHistory() {
+    try {
+        console.log('Fetching history from service...');
+        const history = await historyService.getHistory();
+        console.log('History loaded:', history.length, 'sessions');
+        return history;
+    } catch (error) {
+        console.error('Error loading history from service:', error);
+        return [];
+    }
+}
+
+
+
+// Clear history
+async function clearAccountHistory() {
+    if (confirm('Are you sure you want to clear all account history? This action cannot be undone.')) {
+        try {
+            await historyService.clearHistory();
+            console.log('History cleared successfully');
+        } catch (error) {
+            console.error('Error clearing history:', error);
+        }
+        updateHistoryDisplay();
+    }
+}
+
+// Export history
+async function exportAccountHistory() {
+    try {
+        await historyService.exportToCSV();
+        console.log('History exported successfully');
+    } catch (error) {
+        console.error('Error exporting history:', error);
+        alert('Failed to export history. Please try again.');
+    }
+}
+
+// Filter history by date range
+function filterHistoryByDate(history, filter) {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (filter) {
+        case 'today':
+            return history.filter(session => new Date(session.timestamp) >= today);
+        case 'week':
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return history.filter(session => new Date(session.timestamp) >= weekAgo);
+        case 'month':
+            const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+            return history.filter(session => new Date(session.timestamp) >= monthAgo);
+        default:
+            return history;
+    }
+}
+
+// Search history
+function searchHistory(history, searchTerm) {
+    if (!searchTerm) return history;
+    
+    const term = searchTerm.toLowerCase();
+    return history.filter(session => {
+        const searchableText = [
+            session.type,
+            ...(session.accounts || []),
+            ...(session.validAccounts || []),
+            ...(session.invalidAccounts || [])
+        ].join(' ').toLowerCase();
+        
+        return searchableText.includes(term);
+    });
+}
+
+// Update history display
+async function updateHistoryDisplay() {
+    console.log('updateHistoryDisplay called');
+    const history = await getAccountHistory();
+    console.log('History loaded:', history.length, 'sessions');
+    
+    const filter = document.getElementById('historyFilter')?.value || 'all';
+    const searchTerm = document.getElementById('historySearch')?.value || '';
+    
+    let filteredHistory = filterHistoryByDate(history, filter);
+    filteredHistory = searchHistory(filteredHistory, searchTerm);
+    console.log('Filtered history:', filteredHistory.length, 'sessions');
+    
+    // Update statistics
+    updateHistoryStats(history);
+    
+    // Update content
+    const historyContent = document.getElementById('historyContent');
+    
+    if (filteredHistory.length === 0) {
+        historyContent.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-history fa-3x mb-3"></i>
+                <p>${history.length === 0 ? 'No account history found. Start creating or checking accounts to see history here.' : 'No sessions match your filter criteria.'}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    historyContent.innerHTML = filteredHistory.map(session => {
+        const date = new Date(session.timestamp).toLocaleString();
+        const typeIcon = session.type === 'register' ? 'user-plus' : 'check-circle';
+        const typeColor = session.type === 'register' ? 'success' : 'info';
+        
+        let accountsHtml = '';
+        if (session.type === 'register' && session.accounts) {
+            accountsHtml = `
+                <div class="mt-2">
+                    <small class="text-muted">Created Accounts (${session.accounts.length}):</small>
+                    <div class="font-monospace small mt-1" style="max-height: 100px; overflow-y: auto;">
+                        ${session.accounts.map(acc => `<div class="text-success">${acc}</div>`).join('')}
+                    </div>
+                </div>
+            `;
+        } else if (session.type === 'check') {
+            const validCount = session.validAccounts ? session.validAccounts.length : 0;
+            const invalidCount = session.invalidAccounts ? session.invalidAccounts.length : 0;
+            accountsHtml = `
+                <div class="mt-2">
+                    <div class="row">
+                        <div class="col-6">
+                            <small class="text-success">Valid: ${validCount}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-danger">Invalid: ${invalidCount}</small>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="card-title">
+                                <i class="fas fa-${typeIcon} text-${typeColor} me-2"></i>
+                                ${session.type === 'register' ? 'Account Registration' : 'Account Check'}
+                            </h6>
+                            <p class="card-text text-muted mb-1">
+                                <i class="fas fa-clock me-1"></i>${date}
+                            </p>
+                            ${accountsHtml}
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-primary btn-sm" onclick="copySessionData(${session.id})">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" onclick="deleteSession(${session.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Update history statistics
+function updateHistoryStats(history) {
+    const totalSessions = history.length;
+    let totalAccounts = 0;
+    let totalValidAccounts = 0;
+    
+    history.forEach(session => {
+        if (session.type === 'register' && session.accounts) {
+            totalAccounts += session.accounts.length;
+            totalValidAccounts += session.accounts.length; // All registered accounts are valid
+        } else if (session.type === 'check') {
+            const validCount = session.validAccounts ? session.validAccounts.length : 0;
+            const invalidCount = session.invalidAccounts ? session.invalidAccounts.length : 0;
+            totalAccounts += validCount + invalidCount;
+            totalValidAccounts += validCount;
+        }
+    });
+    
+    const successRate = totalAccounts > 0 ? Math.round((totalValidAccounts / totalAccounts) * 100) : 0;
+    
+    document.getElementById('totalSessions').textContent = totalSessions;
+    document.getElementById('totalHistoryAccounts').textContent = totalAccounts;
+    document.getElementById('totalValidAccounts').textContent = totalValidAccounts;
+    document.getElementById('successRate').textContent = `${successRate}%`;
+}
+
+// Copy session data
+async function copySessionData(sessionId) {
+    const history = await getAccountHistory();
+    const session = history.find(s => s.id === sessionId);
+    
+    if (!session) return;
+    
+    let copyText = '';
+    if (session.type === 'register' && session.accounts) {
+        copyText = session.accounts.join('\n');
+    } else if (session.type === 'check' && session.validAccounts) {
+        copyText = session.validAccounts.join('\n');
+    }
+    
+    if (copyText) {
+        copyToClipboard(copyText, 'Session data copied to clipboard!');
+    }
+}
+
+// Delete session
+async function deleteSession(sessionId) {
+    if (confirm('Are you sure you want to delete this session?')) {
+        try {
+            const success = historyService.deleteSession(sessionId);
+            if (success) {
+                console.log('Session deleted successfully');
+            } else {
+                console.error('Failed to delete session');
+            }
+        } catch (error) {
+            console.error('Error deleting session:', error);
+        }
+        
+        // Refresh history display
+        updateHistoryDisplay();
+    }
+}
+
+
+
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('Page loaded, initializing...');
+    
+    console.log('Initializing application...');
+    
     // Load default password from config if available
-    fetch('/config.json')
-        .then(response => response.json())
-        .then(config => {
-            if (config.password) {
-                document.getElementById('defaultPassword').value = config.password;
-            }
-        })
-        .catch(() => {
-            // Config not accessible, use default
-        });
+    loadCurrentPassword();
+    
+    // Initialize history display
+    console.log('Initializing history display...');
+    updateHistoryDisplay();
+    
+    // Add event listeners for history functionality
+    document.getElementById('historySearch').addEventListener('input', updateHistoryDisplay);
+    document.getElementById('historyFilter').addEventListener('change', updateHistoryDisplay);
+    document.getElementById('exportHistoryBtn').addEventListener('click', exportAccountHistory);
+    document.getElementById('clearHistoryBtn').addEventListener('click', clearAccountHistory);
+    
+    // Listen for storage changes from other tabs/apps
+    window.addEventListener('storage', function(e) {
+        console.log('Storage changed, updating history display');
+        setTimeout(updateHistoryDisplay, 100); // Small delay to ensure data is written
+    });
+    
+    // Periodically refresh history display to catch any missed updates
+    setInterval(updateHistoryDisplay, 30000); // Refresh every 30 seconds
 });
 
 // Prevent form submission on Enter key

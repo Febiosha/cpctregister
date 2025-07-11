@@ -1,0 +1,373 @@
+[
+  {
+    "id": 1752251179174,
+    "timestamp": "2025-07-11T16:26:19.174Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "ilaanderson@tempmail.org",
+        "error": "startTime is not defined",
+        "reason": "general_error"
+      },
+      {
+        "email": "giovannibaumbach71@guerrillamail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 2,
+    "totalCreated": 0,
+    "totalFailed": 2,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752249814840,
+    "timestamp": "2025-07-11T16:03:34.840Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "joannykemmer@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "quintenpollichglover@tempmail.org",
+        "error": "startTime is not defined",
+        "reason": "general_error"
+      },
+      {
+        "email": "cleveklein82@10minutemail.com",
+        "error": "startTime is not defined",
+        "reason": "general_error"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 3,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752248882831,
+    "timestamp": "2025-07-11T15:48:02.831Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "kariannehayes2@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "ewellfarrell@mailinator.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 2,
+    "totalCreated": 0,
+    "totalFailed": 2,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752248084884,
+    "timestamp": "2025-07-11T15:34:44.884Z",
+    "type": "register",
+    "accounts": [
+      "macsipes@hieu.in|DreaminaKesya123!",
+      "jaidenhodkiewicz@penampilannieken.io|DreaminaKesya123!"
+    ],
+    "failedAccounts": [
+      {
+        "email": "alessandroweimann@10minutemail.net",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 2,
+    "totalFailed": 1,
+    "successRate": "66.7"
+  },
+  {
+    "id": 1752247897203,
+    "timestamp": "2025-07-11T15:31:37.203Z",
+    "type": "register",
+    "accounts": [
+      "jaidenhodkiewicz@penampilannieken.io|DreaminaKesya123!"
+    ],
+    "totalRequested": 1,
+    "totalCreated": 1,
+    "partialResult": true
+  },
+  {
+    "id": 1752247891756,
+    "timestamp": "2025-07-11T15:31:31.756Z",
+    "type": "register",
+    "accounts": [
+      "macsipes@hieu.in|DreaminaKesya123!"
+    ],
+    "totalRequested": 1,
+    "totalCreated": 1,
+    "partialResult": true
+  },
+  {
+    "id": 1752247623419,
+    "timestamp": "2025-07-11T15:27:03.419Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "juanita4@guerrillamail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247615453,
+    "timestamp": "2025-07-11T15:26:55.453Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "jamelbotsford81@temp-mail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247610801,
+    "timestamp": "2025-07-11T15:26:50.801Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "bessiedavis@temp-mail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247609415,
+    "timestamp": "2025-07-11T15:26:49.415Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "jaylonmills@tempmail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247606884,
+    "timestamp": "2025-07-11T15:26:46.884Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "lempi77@guerrillamail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247601853,
+    "timestamp": "2025-07-11T15:26:41.853Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "lottielangworth@guerrillamail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247589465,
+    "timestamp": "2025-07-11T15:26:29.465Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "lesleyweissnat@mitrabisa.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752247430576,
+    "timestamp": "2025-07-11T15:23:50.576Z",
+    "type": "register",
+    "accounts": [
+      "darronwindler18@plussparknet.com|DreaminaKesya123!",
+      "mireyabotsford88@taptoplab.com|DreaminaKesya123!"
+    ],
+    "failedAccounts": [
+      {
+        "email": "rocky77@10minutemail.com",
+        "error": "startTime is not defined",
+        "reason": "general_error"
+      },
+      {
+        "email": "charlene6@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "jamison94@guerrillamail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "kassandrahegmann@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "samarahand48@guerrillamail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "miller64@mailinator.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "teresakilback@guerrillamail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "maynard18@temp-mail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "anastasiametz@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 11,
+    "totalCreated": 2,
+    "totalFailed": 9,
+    "successRate": "18.2"
+  },
+  {
+    "id": 1752247254682,
+    "timestamp": "2025-07-11T15:20:54.682Z",
+    "type": "register",
+    "accounts": [
+      "chelsiechamplin@binhvt.com|DreaminaKesya123!"
+    ],
+    "failedAccounts": [
+      {
+        "email": "derickstoltenberg31@10minutemail.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      },
+      {
+        "email": "isabel64@guerrillamail.org",
+        "error": "startTime is not defined",
+        "reason": "general_error"
+      }
+    ],
+    "totalRequested": 3,
+    "totalCreated": 1,
+    "totalFailed": 2,
+    "successRate": "33.3"
+  },
+  {
+    "id": 1752247134750,
+    "timestamp": "2025-07-11T15:18:54.750Z",
+    "type": "register",
+    "accounts": [],
+    "failedAccounts": [
+      {
+        "email": "hazellittel38@guerrillamail.biz",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 1,
+    "totalCreated": 0,
+    "totalFailed": 1,
+    "successRate": "0.0"
+  },
+  {
+    "id": 1752246744675,
+    "timestamp": "2025-07-11T15:12:24.675Z",
+    "type": "register",
+    "accounts": [
+      "federico63@gmailot.com|DreaminaKesya123!"
+    ],
+    "failedAccounts": [
+      {
+        "email": "craigschimmel78@mailinator.com",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 2,
+    "totalCreated": 1,
+    "totalFailed": 1,
+    "successRate": "50.0"
+  },
+  {
+    "id": 1752246672028,
+    "timestamp": "2025-07-11T15:11:12.028Z",
+    "type": "register",
+    "accounts": [
+      "cheyenne85@mitrabisa.com|DreaminaKesya123!"
+    ],
+    "failedAccounts": [
+      {
+        "email": "roscoe43@tempmail.org",
+        "error": "Verification code not received",
+        "reason": "code_timeout"
+      }
+    ],
+    "totalRequested": 2,
+    "totalCreated": 1,
+    "totalFailed": 1,
+    "successRate": "50.0"
+  }
+]
